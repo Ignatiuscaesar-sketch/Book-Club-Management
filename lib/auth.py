@@ -1,7 +1,6 @@
-import click
-from lib.models import session
-from lib.models.user import User
 import hashlib
+from models import session
+from models.user import User
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -12,26 +11,17 @@ def authenticate(username, password):
         return user
     return None
 
-@click.command()
-@click.option('--username', prompt=True)
-@click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
-def register(username, password):
+def register_user(username, password):
     if session.query(User).filter_by(username=username).first():
-        click.echo('Username already exists.')
-        return
+        return 'Username already exists.'
     user = User(username=username, password=hash_password(password))
     session.add(user)
     session.commit()
-    click.echo('User registered successfully!')
+    return 'User registered successfully!'
 
-@click.command()
-@click.option('--username', prompt=True)
-@click.option('--password', prompt=True, hide_input=True)
-def login(username, password):
+def login_user(username, password):
     user = authenticate(username, password)
     if user:
-        click.echo('Login successful!')
-        return user
+        return user, 'Login successful!'
     else:
-        click.echo('Invalid username or password.')
-        return None
+        return None, 'Invalid username or password.'

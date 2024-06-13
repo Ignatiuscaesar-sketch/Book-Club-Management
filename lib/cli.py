@@ -3,8 +3,9 @@ from models import session
 from models.member import Member
 from models.book import Book
 from models.meeting import Meeting
+from models.user import User
 from datetime import datetime
-from auth import register, login
+from auth import register_user, login_user
 
 current_user = None
 
@@ -13,15 +14,19 @@ def cli():
     pass
 
 @cli.command()
-def register_user():
-    register()
+@click.option('--username', prompt=True)
+@click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
+def register(username, password):
+    message = register_user(username, password)
+    click.echo(message)
 
 @cli.command()
-def login_user():
+@click.option('--username', prompt=True)
+@click.option('--password', prompt=True, hide_input=True)
+def login(username, password):
     global current_user
-    current_user = login()
-    if current_user:
-        click.echo(f'Logged in as {current_user.username}')
+    current_user, message = login_user(username, password)
+    click.echo(message)
 
 def ensure_authenticated(func):
     def wrapper(*args, **kwargs):
@@ -39,14 +44,14 @@ def add_member():
     member = Member(name=name, email=email)
     session.add(member)
     session.commit()
-    print(f"Member {name} added successfully!")
+    click.echo(f"Member {name} added successfully!")
 
 @cli.command()
 @ensure_authenticated
 def view_members():
     members = session.query(Member).all()
     for member in members:
-        print(member)
+        click.echo(member)
 
 @cli.command()
 @ensure_authenticated
@@ -56,14 +61,14 @@ def add_book():
     book = Book(title=title, author=author)
     session.add(book)
     session.commit()
-    print(f"Book {title} by {author} added successfully!")
+    click.echo(f"Book {title} by {author} added successfully!")
 
 @cli.command()
 @ensure_authenticated
 def view_books():
     books = session.query(Book).all()
     for book in books:
-        print(book)
+        click.echo(book)
 
 @cli.command()
 @ensure_authenticated
@@ -76,21 +81,19 @@ def schedule_meeting():
     meeting = Meeting(member_id=member_id, book_id=book_id, date=date, notes=notes)
     session.add(meeting)
     session.commit()
-    print("Meeting scheduled successfully!")
+    click.echo("Meeting scheduled successfully!")
 
 @cli.command()
 @ensure_authenticated
 def view_meetings():
     meetings = session.query(Meeting).all()
     for meeting in meetings:
-        print(meeting)
+        click.echo(meeting)
 
 @cli.command()
 def exit_program():
-    print("Goodbye!")
+    click.echo("Goodbye!")
     exit()
 
 if __name__ == '__main__':
-    cli.add_command(register_user)
-    cli.add_command(login_user)
     cli()
