@@ -1,6 +1,6 @@
 import hashlib
-from models import session
-from models.user import User
+from .models import session
+from .models.user import User
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
