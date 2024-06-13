@@ -6,8 +6,7 @@ from models.meeting import Meeting
 from models.user import User
 from datetime import datetime
 from auth import register_user, login_user
-
-current_user = None
+from helpers import save_current_user, get_current_user, clear_current_user
 
 @click.group()
 def cli():
@@ -24,19 +23,25 @@ def register(username, password):
 @click.option('--username', prompt=True)
 @click.option('--password', prompt=True, hide_input=True)
 def login(username, password):
-    global current_user
-    current_user, message = login_user(username, password)
+    user, message = login_user(username, password)
     click.echo(message)
+    if user:
+        save_current_user(user.username)
+        click.echo(f'Current user set to: {user.username}')
 
 def ensure_authenticated(func):
-    def wrapper(*args, **kwargs):
+    @click.pass_context
+    def wrapper(ctx, *args, **kwargs):
+        current_user = get_current_user()
         if not current_user:
             click.echo('You must be logged in to perform this action.')
-            return
-        return func(*args, **kwargs)
+            ctx.exit()
+        else:
+            click.echo(f'Authenticated as: {current_user}')
+            return func(*args, **kwargs)
     return wrapper
 
-@cli.command()
+@cli.command(name='add-member')
 @ensure_authenticated
 def add_member():
     name = input("Enter member name: ")
@@ -46,14 +51,14 @@ def add_member():
     session.commit()
     click.echo(f"Member {name} added successfully!")
 
-@cli.command()
+@cli.command(name='view-members')
 @ensure_authenticated
 def view_members():
     members = session.query(Member).all()
     for member in members:
         click.echo(member)
 
-@cli.command()
+@cli.command(name='add-book')
 @ensure_authenticated
 def add_book():
     title = input("Enter book title: ")
@@ -63,14 +68,14 @@ def add_book():
     session.commit()
     click.echo(f"Book {title} by {author} added successfully!")
 
-@cli.command()
+@cli.command(name='view-books')
 @ensure_authenticated
 def view_books():
     books = session.query(Book).all()
     for book in books:
         click.echo(book)
 
-@cli.command()
+@cli.command(name='schedule-meeting')
 @ensure_authenticated
 def schedule_meeting():
     member_id = input("Enter member ID: ")
@@ -83,7 +88,7 @@ def schedule_meeting():
     session.commit()
     click.echo("Meeting scheduled successfully!")
 
-@cli.command()
+@cli.command(name='view-meetings')
 @ensure_authenticated
 def view_meetings():
     meetings = session.query(Meeting).all()
@@ -92,6 +97,7 @@ def view_meetings():
 
 @cli.command()
 def exit_program():
+    clear_current_user()
     click.echo("Goodbye!")
     exit()
 
