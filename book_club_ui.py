@@ -5,7 +5,7 @@ from lib.models.member import Member
 from lib.models.book import Book
 from lib.models.meeting import Meeting
 from lib.models.user import User
-from lib.auth import register_user, login_user
+from lib.auth import register_user, login_user, hash_password
 from datetime import datetime
 
 # Global variable to store current user
@@ -15,7 +15,7 @@ class BookClubApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Book Club Management")
-        self.geometry("400x400")
+        self.geometry("400x600")
 
         self.current_user = None
 
@@ -78,7 +78,10 @@ class BookClubApp(tk.Tk):
         tk.Button(self.actions_frame, text="View Members", command=self.view_members).grid(row=1, column=1, padx=5, pady=5)
         tk.Button(self.actions_frame, text="Schedule Meeting", command=self.schedule_meeting).grid(row=2, column=0, padx=5, pady=5)
         tk.Button(self.actions_frame, text="View Meetings", command=self.view_meetings).grid(row=2, column=1, padx=5, pady=5)
-        tk.Button(self.actions_frame, text="Logout", command=self.logout).grid(row=3, column=0, columnspan=2, pady=10)
+        tk.Button(self.actions_frame, text="Update Password", command=self.update_password).grid(row=3, column=0, padx=5, pady=5)
+        tk.Button(self.actions_frame, text="Delete Member", command=self.delete_member).grid(row=3, column=1, padx=5, pady=5)
+        tk.Button(self.actions_frame, text="Delete Book", command=self.delete_book).grid(row=4, column=0, padx=5, pady=5)
+        tk.Button(self.actions_frame, text="Logout", command=self.logout).grid(row=5, column=0, columnspan=2, pady=10)
 
     def add_book(self):
         AddBookWindow(self)
@@ -97,6 +100,15 @@ class BookClubApp(tk.Tk):
 
     def view_meetings(self):
         ViewMeetingsWindow(self)
+
+    def update_password(self):
+        UpdatePasswordWindow(self)
+
+    def delete_member(self):
+        DeleteMemberWindow(self)
+
+    def delete_book(self):
+        DeleteBookWindow(self)
 
     def logout(self):
         global current_user
@@ -219,6 +231,76 @@ class ViewMeetingsWindow(tk.Toplevel):
         meetings = session.query(Meeting).all()
         for meeting in meetings:
             tk.Label(self, text=str(meeting)).pack(pady=5)
+
+class UpdatePasswordWindow(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Update Password")
+        self.geometry("300x150")
+
+        tk.Label(self, text="New Password:").pack(pady=5)
+        self.new_password_entry = tk.Entry(self, show="*")
+        self.new_password_entry.pack(pady=5)
+
+        tk.Button(self, text="Update", command=self.update_password).pack(pady=10)
+
+    def update_password(self):
+        new_password = self.new_password_entry.get()
+        global current_user
+        user = session.query(User).filter_by(username=current_user.username).first()
+        if user:
+            user.password = hash_password(new_password)
+            session.commit()
+            messagebox.showinfo("Update Password", "Password updated successfully!")
+            self.destroy()
+        else:
+            messagebox.showerror("Error", "User not found.")
+
+class DeleteMemberWindow(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Delete Member")
+        self.geometry("300x150")
+
+        tk.Label(self, text="Member ID:").pack(pady=5)
+        self.member_id_entry = tk.Entry(self)
+        self.member_id_entry.pack(pady=5)
+
+        tk.Button(self, text="Delete", command=self.delete_member).pack(pady=10)
+
+    def delete_member(self):
+        member_id = self.member_id_entry.get()
+        member = session.query(Member).filter_by(id=member_id).first()
+        if member:
+            session.delete(member)
+            session.commit()
+            messagebox.showinfo("Delete Member", "Member deleted successfully!")
+            self.destroy()
+        else:
+            messagebox.showerror("Error", "Member not found.")
+
+class DeleteBookWindow(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Delete Book")
+        self.geometry("300x150")
+
+        tk.Label(self, text="Book ID:").pack(pady=5)
+        self.book_id_entry = tk.Entry(self)
+        self.book_id_entry.pack(pady=5)
+
+        tk.Button(self, text="Delete", command=self.delete_book).pack(pady=10)
+
+    def delete_book(self):
+        book_id = self.book_id_entry.get()
+        book = session.query(Book).filter_by(id=book_id).first()
+        if book:
+            session.delete(book)
+            session.commit()
+            messagebox.showinfo("Delete Book", "Book deleted successfully!")
+            self.destroy()
+        else:
+            messagebox.showerror("Error", "Book not found.")
 
 if __name__ == "__main__":
     app = BookClubApp()
