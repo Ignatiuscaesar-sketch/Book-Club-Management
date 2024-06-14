@@ -1,5 +1,5 @@
-from .models import session
-from .models.user import User
+from lib.models import session
+from lib.models.user import User
 import hashlib
 
 def hash_password(password):

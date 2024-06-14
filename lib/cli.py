@@ -1,12 +1,19 @@
+import sys
+import os
+
+# Add the project root directory to the Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
+
 import click
-from models import session
-from models.member import Member
-from models.book import Book
-from models.meeting import Meeting
-from models.user import User
+from lib.models import session
+from lib.models.member import Member
+from lib.models.book import Book
+from lib.models.meeting import Meeting
+from lib.models.user import User
 from datetime import datetime
-from auth import register_user, login_user, hash_password
-from helpers import save_current_user, get_current_user, clear_current_user
+from lib.auth import register_user, login_user
+from lib.helpers import save_current_user, get_current_user, clear_current_user
 
 @click.group()
 def cli():
@@ -83,14 +90,6 @@ def schedule_meeting():
     date_str = input("Enter meeting date (YYYY-MM-DD): ")
     date = datetime.strptime(date_str, "%Y-%m-%d").date()
     notes = input("Enter meeting notes: ")
-    member = session.query(Member).get(member_id)
-    book = session.query(Book).get(book_id)
-    if not member:
-        click.echo(f"Member with ID {member_id} does not exist.")
-        return
-    if not book:
-        click.echo(f"Book with ID {book_id} does not exist.")
-        return
     meeting = Meeting(member_id=member_id, book_id=book_id, date=date, notes=notes)
     session.add(meeting)
     session.commit()
@@ -104,11 +103,10 @@ def view_meetings():
         click.echo(meeting)
 
 @cli.command(name='update-password')
+@click.option('--new_password', prompt=True, hide_input=True, confirmation_prompt=True)
 @ensure_authenticated
-@click.option('--new-password', prompt=True, hide_input=True, confirmation_prompt=True)
 def update_password(new_password):
-    current_user = get_current_user()
-    user = session.query(User).filter_by(username=current_user).first()
+    user = session.query(User).filter_by(username=get_current_user()).first()
     if user:
         user.password = hash_password(new_password)
         session.commit()
@@ -117,8 +115,8 @@ def update_password(new_password):
         click.echo("User not found.")
 
 @cli.command(name='delete-member')
+@click.option('--member_id', prompt=True)
 @ensure_authenticated
-@click.option('--member-id', prompt=True)
 def delete_member(member_id):
     member = session.query(Member).filter_by(id=member_id).first()
     if member:
@@ -129,8 +127,8 @@ def delete_member(member_id):
         click.echo("Member not found.")
 
 @cli.command(name='delete-book')
+@click.option('--book_id', prompt=True)
 @ensure_authenticated
-@click.option('--book-id', prompt=True)
 def delete_book(book_id):
     book = session.query(Book).filter_by(id=book_id).first()
     if book:
