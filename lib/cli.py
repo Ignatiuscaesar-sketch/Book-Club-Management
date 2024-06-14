@@ -5,7 +5,7 @@ from models.book import Book
 from models.meeting import Meeting
 from models.user import User
 from datetime import datetime
-from auth import register_user, login_user
+from auth import register_user, login_user, hash_password
 from helpers import save_current_user, get_current_user, clear_current_user
 
 @click.group()
@@ -83,6 +83,14 @@ def schedule_meeting():
     date_str = input("Enter meeting date (YYYY-MM-DD): ")
     date = datetime.strptime(date_str, "%Y-%m-%d").date()
     notes = input("Enter meeting notes: ")
+    member = session.query(Member).get(member_id)
+    book = session.query(Book).get(book_id)
+    if not member:
+        click.echo(f"Member with ID {member_id} does not exist.")
+        return
+    if not book:
+        click.echo(f"Book with ID {book_id} does not exist.")
+        return
     meeting = Meeting(member_id=member_id, book_id=book_id, date=date, notes=notes)
     session.add(meeting)
     session.commit()
@@ -94,6 +102,43 @@ def view_meetings():
     meetings = session.query(Meeting).all()
     for meeting in meetings:
         click.echo(meeting)
+
+@cli.command(name='update-password')
+@ensure_authenticated
+@click.option('--new-password', prompt=True, hide_input=True, confirmation_prompt=True)
+def update_password(new_password):
+    current_user = get_current_user()
+    user = session.query(User).filter_by(username=current_user).first()
+    if user:
+        user.password = hash_password(new_password)
+        session.commit()
+        click.echo("Password updated successfully!")
+    else:
+        click.echo("User not found.")
+
+@cli.command(name='delete-member')
+@ensure_authenticated
+@click.option('--member-id', prompt=True)
+def delete_member(member_id):
+    member = session.query(Member).filter_by(id=member_id).first()
+    if member:
+        session.delete(member)
+        session.commit()
+        click.echo("Member deleted successfully!")
+    else:
+        click.echo("Member not found.")
+
+@cli.command(name='delete-book')
+@ensure_authenticated
+@click.option('--book-id', prompt=True)
+def delete_book(book_id):
+    book = session.query(Book).filter_by(id=book_id).first()
+    if book:
+        session.delete(book)
+        session.commit()
+        click.echo("Book deleted successfully!")
+    else:
+        click.echo("Book not found.")
 
 @cli.command()
 def exit_program():

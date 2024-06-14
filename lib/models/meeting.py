@@ -17,4 +17,6 @@ class Meeting(Base):
     book = relationship(Book)
     
     def __repr__(self):
-        return f"<Meeting(date='{self.date}', member='{self.member.name}', book='{self.book.title}')>"
+        member_name = self.member.name if self.member else "Unknown"
+        book_title = self.book.title if self.book else "Unknown"
+        return f"<Meeting(date='{self.date}', member='{member_name}', book='{book_title}')>"
