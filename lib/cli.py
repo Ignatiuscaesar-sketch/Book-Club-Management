@@ -12,7 +12,7 @@ from lib.models.book import Book
 from lib.models.meeting import Meeting
 from lib.models.user import User
 from datetime import datetime
-from lib.auth import register_user, login_user
+from lib.auth import register_user, login_user, hash_password
 from lib.helpers import save_current_user, get_current_user, clear_current_user
 
 @click.group()
